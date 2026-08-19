@@ -1,6 +1,6 @@
 import type { GameMode } from "./types";
 
-type SemanticAction = "forward" | "back" | "left" | "right" | "sprint";
+type SemanticAction = "forward" | "back" | "left" | "right" | "sprint" | "crouch";
 
 const KEY_TO_ACTION: Record<string, SemanticAction | undefined> = {
   KeyW: "forward",
@@ -13,6 +13,9 @@ const KEY_TO_ACTION: Record<string, SemanticAction | undefined> = {
   ArrowRight: "right",
   ShiftLeft: "sprint",
   ShiftRight: "sprint",
+  ControlLeft: "crouch",
+  ControlRight: "crouch",
+  KeyC: "crouch",
 };
 
 /** Input is centralized so gameplay systems never inspect raw browser key events. */
@@ -22,6 +25,7 @@ export class InputState {
   private pauseRequested = false;
   private firing = false;
   private aiming = false;
+  private jumpRequested = false;
 
   private onKeyDown = (event: KeyboardEvent) => {
     const action = KEY_TO_ACTION[event.code];
@@ -31,6 +35,10 @@ export class InputState {
     }
     if (event.code === "KeyR" && !event.repeat) {
       this.reloadRequested = true;
+      event.preventDefault();
+    }
+    if (event.code === "Space" && !event.repeat) {
+      this.jumpRequested = true;
       event.preventDefault();
     }
     if (event.code === "Escape") this.pauseRequested = true;
@@ -76,6 +84,12 @@ export class InputState {
     return this.aiming;
   }
 
+  consumeJump() {
+    const requested = this.jumpRequested;
+    this.jumpRequested = false;
+    return requested;
+  }
+
   consumeReload() {
     const requested = this.reloadRequested;
     this.reloadRequested = false;
@@ -92,6 +106,7 @@ export class InputState {
     this.actions.clear();
     this.firing = false;
     this.aiming = false;
+    this.jumpRequested = false;
   }
 
   dispose() {

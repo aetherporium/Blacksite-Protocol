@@ -13,6 +13,10 @@ export class WeaponSystem {
   private reloadTimer = 0;
   private nextShotAt = 0;
   private recoil = 0;
+  private reticleBloom = 0;
+  private aimAmount = 0;
+  private shotPulse = 0;
+  private reloadPhase: "ready" | "eject" | "insert" | "chamber" = "ready";
   private readonly root = new THREE.Group();
   private readonly muzzle = new THREE.PointLight(0xffc06a, 0, 7.5, 2);
   private readonly raycaster = new THREE.Raycaster();
@@ -27,6 +31,7 @@ export class WeaponSystem {
     private getTargets: () => THREE.Object3D[],
     private onEnemyHit: (enemy: EnemyAgent, point: THREE.Vector3) => void,
     private onShot: () => void,
+    private onRecoil: (pitchImpulse: number, yawImpulse: number) => void = () => undefined,
   ) {
     this.camera.add(this.root);
     this.root.position.set(0.43, -0.37, -0.73);
@@ -42,9 +47,13 @@ export class WeaponSystem {
     if (this.reloading || now < this.nextShotAt || this.ammo <= 0) return false;
     this.ammo -= 1;
     this.onShot();
-    this.nextShotAt = now + 0.094;
-    this.recoil = Math.min(1.45, this.recoil + 0.76);
-    this.muzzle.intensity = 11;
+    this.nextShotAt = now + (this.aimAmount > 0.7 ? 0.1 : 0.094);
+    const recoilScale = THREE.MathUtils.lerp(1, 0.58, this.aimAmount);
+    this.recoil = Math.min(1.6, this.recoil + 0.82 * recoilScale);
+    this.reticleBloom = Math.min(1, this.reticleBloom + 0.32 * recoilScale);
+    this.shotPulse = 1;
+    this.muzzle.intensity = 15;
+    this.onRecoil(0.009 * recoilScale, (Math.random() - 0.5) * 0.0045 * recoilScale);
 
     const origin = new THREE.Vector3();
     const direction = new THREE.Vector3();
@@ -67,6 +76,7 @@ export class WeaponSystem {
     if (this.reloading || this.ammo >= this.magazineSize || this.reserve <= 0) return false;
     this.reloading = true;
     this.reloadTimer = 1.32;
+    this.reloadPhase = "eject";
     return true;
   }
 
@@ -75,19 +85,23 @@ export class WeaponSystem {
   }
 
   update(delta: number, movementAmount = 0, sprintAmount = 0, aimAmount = 0) {
+    this.aimAmount = aimAmount;
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - delta * 35);
     this.recoil = THREE.MathUtils.damp(this.recoil, 0, 13, delta);
+    this.reticleBloom = THREE.MathUtils.damp(this.reticleBloom, 0, 8.5, delta);
+    this.shotPulse = THREE.MathUtils.damp(this.shotPulse, 0, 18, delta);
     const handlingTime = performance.now() * 0.0017;
     const strideX = Math.sin(handlingTime * 6.5) * 0.018 * movementAmount;
     const strideY = Math.abs(Math.cos(handlingTime * 6.5)) * 0.016 * movementAmount;
     this.root.position.x = 0.43 + strideX - sprintAmount * 0.06 - aimAmount * 0.33;
-    this.root.position.y = -0.37 - this.recoil * 0.028 + strideY + Math.sin(handlingTime) * 0.004 + aimAmount * 0.13;
+    this.root.position.y = -0.37 - this.recoil * 0.042 + strideY + Math.sin(handlingTime) * 0.004 + aimAmount * 0.13;
     this.root.position.z = -0.73 + sprintAmount * 0.09 + aimAmount * 0.26;
-    this.root.rotation.x = -0.05 - this.recoil * 0.085 + sprintAmount * 0.08;
+    this.root.rotation.x = -0.05 - this.recoil * 0.13 + sprintAmount * 0.08;
     this.root.rotation.y = -0.16 - strideX * 0.38 + aimAmount * 0.15;
 
     if (this.reloading) {
       this.reloadTimer -= delta;
+      this.reloadPhase = this.reloadTimer > 0.9 ? "eject" : this.reloadTimer > 0.24 ? "insert" : "chamber";
       this.root.rotation.z = THREE.MathUtils.damp(this.root.rotation.z, -0.24, 8, delta);
       if (this.reloadTimer <= 0) {
         const needed = this.magazineSize - this.ammo;
@@ -95,6 +109,7 @@ export class WeaponSystem {
         this.ammo += amount;
         this.reserve -= amount;
         this.reloading = false;
+        this.reloadPhase = "ready";
       }
     } else {
       this.root.rotation.z = THREE.MathUtils.damp(this.root.rotation.z, 0.02 + Math.sin(handlingTime * 6.5) * 0.028 * movementAmount, 12, delta);
@@ -126,6 +141,17 @@ export class WeaponSystem {
   dispose() {
     this.tracerMaterial.dispose();
     this.root.removeFromParent();
+  }
+
+  get weaponSnapshot() {
+    return {
+      ammo: this.ammo,
+      reloading: this.reloading,
+      reloadPhase: this.reloadPhase,
+      recoil: Number(this.recoil.toFixed(3)),
+      reticleBloom: Number(this.reticleBloom.toFixed(3)),
+      muzzleIntensity: Number(this.muzzle.intensity.toFixed(3)),
+    };
   }
 
   private createViewModel() {

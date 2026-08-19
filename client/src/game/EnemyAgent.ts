@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { ASSET_URLS } from "./types";
 
 export type EnemyShotHandler = (damage: number) => void;
+export type EnemyState = "patrol" | "alert" | "seekCover" | "engage" | "hit" | "dead";
 
 /** A procedural security operator: the silhouette stays readable without importing a fragile rigged-model pipeline. */
 export class EnemyAgent {
@@ -11,7 +12,7 @@ export class EnemyAgent {
   health = 100;
   isAlive = true;
 
-  private state: "patrol" | "combat" | "hit" | "dead" = "patrol";
+  private state: EnemyState = "patrol";
   private strafePhase: number;
   private fireCooldown: number;
   private hitTimer = 0;
@@ -24,11 +25,21 @@ export class EnemyAgent {
   private readonly legs: THREE.Mesh[] = [];
   private readonly variant: number;
   private readonly baseHeight: number;
+  private readonly sightRay = new THREE.Ray();
+  private readonly sightOrigin = new THREE.Vector3();
+  private readonly sightDirection = new THREE.Vector3();
+  private readonly rayHit = new THREE.Vector3();
+  private readonly movementTarget = new THREE.Vector3();
+  private alertTimer = 0;
+  private currentCover: THREE.Vector3 | null = null;
+  private lineOfSight = false;
 
   constructor(
     id: string,
     position: THREE.Vector3,
     private onShot: EnemyShotHandler,
+    private colliders: THREE.Box3[],
+    private coverPoints: THREE.Vector3[],
   ) {
     this.id = id;
     this.root.position.copy(position);
@@ -144,15 +155,17 @@ export class EnemyAgent {
     this.muzzle.position.set(0.32, 1.52, -0.95);
     this.root.add(this.muzzle);
 
-    const operatorTexture = new THREE.TextureLoader().load(ASSET_URLS.operatorSilhouette);
-    operatorTexture.colorSpace = THREE.SRGBColorSpace;
-    const operatorCard = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.12, 2.7),
-      new THREE.MeshBasicMaterial({ map: operatorTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
-    );
-    operatorCard.position.set(0, 1.3, 0.24);
-    operatorCard.renderOrder = 2;
-    this.root.add(operatorCard);
+    if (typeof document !== "undefined") {
+      const operatorTexture = new THREE.TextureLoader().load(ASSET_URLS.operatorSilhouette);
+      operatorTexture.colorSpace = THREE.SRGBColorSpace;
+      const operatorCard = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.12, 2.7),
+        new THREE.MeshBasicMaterial({ map: operatorTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
+      );
+      operatorCard.position.set(0, 1.3, 0.24);
+      operatorCard.renderOrder = 2;
+      this.root.add(operatorCard);
+    }
   }
 
   update(delta: number, elapsed: number, playerPosition: THREE.Vector3) {
@@ -164,23 +177,57 @@ export class EnemyAgent {
       return;
     }
 
+    this.root.position.y = this.baseHeight + Math.sin(elapsed * 14 + this.strafePhase) * 0.022;
     const target = playerPosition.clone();
     target.y = this.root.position.y + 1.32;
     this.root.lookAt(target);
     const distance = this.root.position.distanceTo(playerPosition);
-    if (distance < 22) this.state = this.hitTimer > 0 ? "hit" : "combat";
+    this.lineOfSight = distance < 22 && this.canSeePlayer(playerPosition);
+    this.hitTimer = Math.max(0, this.hitTimer - delta);
+    if (this.hitTimer > 0) {
+      this.state = "hit";
+    } else if (this.state === "hit") {
+      this.state = this.lineOfSight ? "seekCover" : "patrol";
+    }
+
+    if (this.state !== "hit") {
+      if (this.lineOfSight && distance < 18 && this.state === "patrol") {
+        this.state = "alert";
+        this.alertTimer = 0.36 + this.variant * 0.08;
+      }
+      if (this.state === "alert") {
+        this.alertTimer -= delta;
+        if (this.alertTimer <= 0) this.state = distance < 7.2 ? "seekCover" : "engage";
+      } else if (!this.lineOfSight) {
+        this.state = "seekCover";
+      } else if (this.state === "engage" && distance < 6.4) {
+        this.state = "seekCover";
+      } else if (this.state === "seekCover" && distance > 8.4 && this.lineOfSight) {
+        this.state = "engage";
+      }
+    }
 
     const gait = Math.sin(elapsed * 7 + this.strafePhase);
-    const gaitStrength = this.state === "combat" ? 0.2 : 0.06;
+    const gaitStrength = this.state === "engage" || this.state === "seekCover" ? 0.2 : this.state === "alert" ? 0.11 : 0.06;
     this.leftArm.rotation.x = gait * gaitStrength;
     this.rightArm.rotation.x = -gait * gaitStrength * 0.82;
     this.legs[0].rotation.x = -gait * gaitStrength * 0.9;
     this.legs[1].rotation.x = gait * gaitStrength * 0.9;
-    this.root.position.y = this.baseHeight + Math.sin(elapsed * 14 + this.strafePhase) * 0.026 * (this.state === "combat" ? 1 : 0.3);
     this.optic.material.color.setHex(this.hitTimer > 0 ? 0xffc49f : 0xe3482e);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - delta * 22);
 
-    if (this.state === "combat") {
+    if (this.state === "seekCover") {
+      this.currentCover ??= this.findCover(playerPosition);
+      if (this.currentCover) {
+        this.moveToward(this.currentCover, 3.35 + this.variant * 0.3, delta);
+        if (this.root.position.distanceToSquared(this.currentCover) < 0.65) {
+          this.currentCover = null;
+          this.state = this.lineOfSight ? "engage" : "patrol";
+        }
+      } else {
+        this.state = this.lineOfSight ? "engage" : "patrol";
+      }
+    } else if (this.state === "engage") {
       this.strafePhase += delta * 1.24;
       const away = this.root.position.clone().sub(playerPosition).setY(0).normalize();
       const tangent = new THREE.Vector3(-away.z, 0, away.x);
@@ -191,16 +238,16 @@ export class EnemyAgent {
       this.root.position.addScaledVector(desired, delta);
       this.root.position.x = THREE.MathUtils.clamp(this.root.position.x, -14.5, 14.5);
       this.root.position.z = THREE.MathUtils.clamp(this.root.position.z, -14.4, 8.4);
-      this.fireCooldown -= delta;
-      if (this.fireCooldown <= 0) {
-        this.fireCooldown = (this.variant === 1 ? 0.42 : this.variant === 2 ? 1.05 : 0.72) + Math.random() * 0.42;
-        this.muzzle.intensity = 8;
-        this.onShot(4 + Math.round(Math.random() * 3));
-      }
+    }
+
+    this.fireCooldown -= delta;
+    if (this.state === "engage" && this.lineOfSight && distance < 18 && this.fireCooldown <= 0) {
+      this.fireCooldown = (this.variant === 1 ? 0.42 : this.variant === 2 ? 1.05 : 0.72) + Math.random() * 0.42;
+      this.muzzle.intensity = 8;
+      this.onShot(4 + Math.round(Math.random() * 3));
     }
 
     if (this.hitTimer > 0) {
-      this.hitTimer -= delta;
       this.bodyMaterial.emissive.setHex(0x4b100a);
       this.root.position.x += Math.sin(elapsed * 34 + this.strafePhase) * delta * 0.25;
     } else {
@@ -211,7 +258,8 @@ export class EnemyAgent {
   takeHit(damage: number) {
     if (!this.isAlive) return false;
     this.health -= damage;
-    this.hitTimer = 0.16;
+    this.hitTimer = 0.22;
+    this.state = "hit";
     if (this.health <= 0) {
       this.health = 0;
       this.isAlive = false;
@@ -221,6 +269,52 @@ export class EnemyAgent {
       });
     }
     return true;
+  }
+
+  get currentState() { return this.state; }
+
+  get controllerSnapshot() {
+    return {
+      state: this.state,
+      lineOfSight: this.lineOfSight,
+      fireCooldown: Number(this.fireCooldown.toFixed(3)),
+      health: this.health,
+    };
+  }
+
+  private canSeePlayer(playerPosition: THREE.Vector3) {
+    this.sightOrigin.copy(this.root.position).add(new THREE.Vector3(0, 1.45, 0));
+    this.sightDirection.copy(playerPosition).add(new THREE.Vector3(0, 1.35, 0)).sub(this.sightOrigin);
+    const distance = this.sightDirection.length();
+    this.sightDirection.normalize();
+    this.sightRay.set(this.sightOrigin, this.sightDirection);
+    return !this.colliders.some((collider) => {
+      const intersection = this.sightRay.intersectBox(collider, this.rayHit);
+      return intersection !== null && this.sightOrigin.distanceTo(intersection) < distance - 0.35;
+    });
+  }
+
+  private findCover(playerPosition: THREE.Vector3) {
+    let best: THREE.Vector3 | null = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+    for (const cover of this.coverPoints) {
+      const playerDistance = cover.distanceToSquared(playerPosition);
+      const selfDistance = cover.distanceToSquared(this.root.position);
+      if (playerDistance < 18 || selfDistance < 0.8) continue;
+      const score = selfDistance - playerDistance * 0.16;
+      if (score < bestScore) {
+        bestScore = score;
+        best = cover;
+      }
+    }
+    return best;
+  }
+
+  private moveToward(target: THREE.Vector3, speed: number, delta: number) {
+    this.movementTarget.copy(target).sub(this.root.position).setY(0);
+    if (this.movementTarget.lengthSq() < 0.0001) return;
+    this.movementTarget.normalize();
+    this.root.position.addScaledVector(this.movementTarget, speed * delta);
   }
 
   private makeArm(

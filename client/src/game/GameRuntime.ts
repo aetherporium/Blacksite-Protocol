@@ -19,6 +19,10 @@ export class GameRuntime {
   private readonly player: PlayerController;
   private readonly weapon: WeaponSystem;
   private readonly enemies: EnemyAgent[] = [];
+  private readonly coverPoints = [
+    new THREE.Vector3(-7.4, 0, 4.1), new THREE.Vector3(-11.2, 0, -1.2), new THREE.Vector3(-3.1, 0, -4.6),
+    new THREE.Vector3(5.8, 0, -2.5), new THREE.Vector3(11.3, 0, 4), new THREE.Vector3(6.2, 0, 6.1),
+  ];
   private mode: GameMode = "briefing";
   private animationFrame = 0;
   private elapsed = 0;
@@ -69,7 +73,7 @@ export class GameRuntime {
     this.input = new InputState(canvas);
     this.environment = createEnvironment(this.scene);
     this.player = new PlayerController(this.scene, this.input, this.environment.colliders);
-    this.weapon = new WeaponSystem(this.scene, this.player.camera, () => this.enemies.flatMap((enemy) => enemy.isAlive ? enemy.hitMeshes : []), (enemy, point) => this.handleEnemyHit(enemy, point), () => this.audio.rifleShot());
+    this.weapon = new WeaponSystem(this.scene, this.player.camera, () => this.enemies.flatMap((enemy) => enemy.isAlive ? enemy.hitMeshes : []), (enemy, point) => this.handleEnemyHit(enemy, point), () => this.audio.rifleShot(), (pitch, yaw) => this.player.applyWeaponRecoil(pitch, yaw));
     this.weapon.setPresentationMode(options.demo);
     this.createEncounter();
 
@@ -129,7 +133,7 @@ export class GameRuntime {
       const enemy = new EnemyAgent(id, position, (damage) => {
         this.player.damage(damage);
         this.audio.enemyShot();
-      });
+      }, this.environment.colliders, this.coverPoints);
       this.enemies.push(enemy);
       this.scene.add(enemy.root);
     });

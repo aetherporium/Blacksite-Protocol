@@ -24,3 +24,13 @@
 - [x] Convert the critique into scoped, technically achievable priorities for motion, combat, enemies, and rendering.
 - [x] Implement the highest-impact upgrades and re-verify live gameplay.
 - [ ] Save the improved release, push it to GitHub, and report the bounded comparison result.
+
+## Controller Rebuild Cycle
+
+- [x] Define measurable acceptance criteria for movement, aim, recoil, enemies, hit feedback, and frame stability.
+- [x] Rebuild the player state machine: grounded locomotion, sprint, strafe, jump, landing, aim, and camera response.
+- [x] Critique the player controller against the written acceptance criteria and correct discovered gaps.
+- [x] Rebuild and critique weapon handling, recoil recovery, reload timing, impacts, and crosshair response.
+- [x] Rebuild and critique enemy locomotion, pursuit, line-of-sight behavior, attacks, hit reactions, and death states.
+- [x] Integrate the subsystems and verify the live encounter with the full deterministic controller test suite.
+- [ ] Save the controller-rebuild release and synchronize GitHub.

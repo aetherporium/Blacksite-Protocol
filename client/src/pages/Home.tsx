@@ -82,7 +82,7 @@ export default function Home() {
             <p>OPERATIVE SIGNAL</p>
           </div>
           <div className="instruction-strip">
-            <span>WASD</span> MOVE <span>SHIFT</span> SPRINT <span>RMB</span> AIM <span>R</span> RELOAD <span>LMB</span> FIRE
+            <span>WASD</span> MOVE <span>SPACE</span> JUMP <span>CTRL</span> CROUCH <span>SHIFT</span> SPRINT <span>RMB</span> AIM <span>R</span> RELOAD <span>LMB</span> FIRE
           </div>
           <div className={`ammo-card ${hud.reloading ? "reloading" : ""}`}>
             <div><span>AR-9 // TUNGSTEN</span><small>{hud.reloading ? "CHAMBERING" : "LIVE"}</small></div>
