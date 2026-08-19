@@ -1,0 +1,49 @@
+{
+  "disclaimer": "Movement, animation, game feel, physics, and capability cannot be determined from a still image. This critique addresses only static visual presentation.",
+  "image_a": {
+    "materials": "Extremely flat, untextured surfaces. Everything reads as default matte shaders with no PBR variation, no normal detail, no specular breakup. Floors and walls are effectively single-color polygons.",
+    "lighting": "Minimal, mostly ambient with a few weak spotlights. No global illumination cues, no meaningful shadow contact, no bounce. Red accent lights provide the only atmosphere but do not tie into surfaces.",
+    "geometry_environment": "Blockout-level complexity: box props, flat catwalks, primitive silhouettes. Reads as a whitebox/greybox test scene rather than a production environment.",
+    "characters_weapons": "Enemies are featureless capsule mannequins with no gear, no faces, no material variation. The player weapon is a barely-visible dark bar at the lower right with no discernible silhouette.",
+    "composition": "Wide, empty framing. Weak focal hierarchy; the reticle is centered but the scene lacks depth cues and layered staging. Muzzle flash on the floor is disconnected from any weapon.",
+    "hud": "Cleanest element in the frame. Restrained typography, clear corner anchoring, readable objective banner, tasteful accent color. HUD integration is arguably its strongest quality.",
+    "verdict": "Reads as an early prototype or stylistic minimalist mock-up. Presentation quality is low as a 'tactical FPS vertical slice.'"
+  },
+  "image_b": {
+    "materials": "Rich PBR surfaces: brushed concrete, wood slat ceiling, glossy tile floor with reflections, foliage with subsurface-like translucency, weathered fabric on gloves, matte polymer on the rifle. Strong material differentiation.",
+    "lighting": "Layered lighting: skylight from above, warm interior LEDs, cyan screen glow, muzzle flash rim on hands. Reflections on floor and glass, believable shadow contact, volumetric dust catching light.",
+    "geometry_environment": "Dense, layered environment with foreground weapon, mid-ground bonsai and enemies, background architecture and holographic display. Multiple depth planes and set-dressing (ivy, planters, debris).",
+    "characters_weapons": "Weapon has a clear, readable silhouette with holo sight, handguard, suppressor, and detailed gloves. Enemies wear coherent tactical kit with helmets and plate carriers, though poses are somewhat stiff and repeated.",
+    "composition": "Strong diagonal from muzzle to enemies, clear focal point via muzzle flash and sparks. Good use of foreground occlusion and negative space in the ceiling. Slightly cluttered with particles.",
+    "hud": "Effectively no diegetic HUD shown; instead the frame is dominated by promotional watermarks ('RTX', '8K ULTRA HD') which hurt presentation credibility and suggest marketing capture rather than in-game UI design.",
+    "verdict": "Materially and lightingwise far more accomplished, but presentation is undermined by marketing overlays and generic 'showcase' staging."
+  },
+  "comparison": {
+    "material_richness": "B decisively higher.",
+    "lighting_depth": "B decisively higher.",
+    "geometric_complexity": "B decisively higher.",
+    "character_weapon_silhouette": "B higher; A's weapon is nearly invisible and enemies are placeholders.",
+    "spatial_composition": "B higher due to layered depth; A is flat and empty.",
+    "visual_hierarchy": "B higher via lighting and action focal points; A relies solely on reticle.",
+    "hud_integration": "A higher. Its HUD is purposeful, legible, and stylistically cohesive; B shows no in-world HUD and is cluttered by promo badges."
+  },
+  "winner": "B",
+  "reasoning": "As still images judged on rendering and presentation, B overwhelmingly outperforms A in materials, lighting, geometry, character/weapon detail, and spatial layering. A only wins on HUD design, which is not enough to offset its blockout-level environment and placeholder characters.",
+  "actionable_feedback": {
+    "for_A": [
+      "Replace flat shaders with PBR materials; add normal, roughness, and albedo variation to floors, walls, and props.",
+      "Introduce directional key lighting with proper shadow casting and at least baked GI or SSAO to ground objects.",
+      "Model the first-person weapon with a readable silhouette in the lower third; align muzzle flash to the barrel.",
+      "Replace mannequin enemies with silhouetted operatives that have gear, helmet, and weapon shapes even if stylized.",
+      "Add mid-ground and background set dressing to create depth layers; currently the scene reads as a single flat plane.",
+      "Keep the HUD\u2014this is your strongest asset\u2014and consider a subtle diegetic tie-in (screen glow, scanlines) to justify the aesthetic."
+    ],
+    "for_B": [
+      "Remove or hide the 'RTX' and '8K ULTRA HD' overlays; they read as marketing, not game presentation, and damage credibility as a vertical slice.",
+      "Add an actual in-game HUD (ammo, objective, health) to demonstrate UI design rather than a bare screenshot.",
+      "Vary enemy poses and spacing; the running silhouettes look repeated and staged.",
+      "Reduce particle spam (sparks, debris) or motivate it with clearer impact points to avoid a generic 'action shot' feel.",
+      "Consider a stronger tactical composition cue\u2014cover geometry the player is using, threat indicators\u2014to sell the 'tactical' framing beyond visual fidelity."
+    ]
+  }
+}

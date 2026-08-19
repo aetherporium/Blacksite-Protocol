@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { ASSET_URLS } from "./types";
 
 export type EnemyShotHandler = (damage: number) => void;
 
@@ -20,6 +21,9 @@ export class EnemyAgent {
   private bodyMaterial: THREE.MeshStandardMaterial;
   private leftArm: THREE.Group;
   private rightArm: THREE.Group;
+  private readonly legs: THREE.Mesh[] = [];
+  private readonly variant: number;
+  private readonly baseHeight: number;
 
   constructor(
     id: string,
@@ -28,11 +32,13 @@ export class EnemyAgent {
   ) {
     this.id = id;
     this.root.position.copy(position);
+    this.baseHeight = position.y;
+    this.variant = Number(id.slice(-2)) % 3;
     this.strafePhase = Math.random() * Math.PI * 2;
-    this.fireCooldown = 0.8 + Math.random() * 1.2;
+    this.fireCooldown = (this.variant === 1 ? 0.42 : this.variant === 2 ? 1.05 : 0.72) + Math.random() * 0.42;
 
     const armor = new THREE.MeshStandardMaterial({
-      color: 0x506870,
+      color: this.variant === 0 ? 0x506870 : this.variant === 1 ? 0x3f555d : 0x60757a,
       roughness: 0.54,
       metalness: 0.72,
       emissive: 0x071012,
@@ -56,6 +62,21 @@ export class EnemyAgent {
     chestPlate.position.set(0, 1.55, -0.31);
     chestPlate.castShadow = true;
     this.root.add(chestPlate);
+    if (this.variant === 0) {
+      const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.16), rubber);
+      backpack.position.set(0, 1.53, 0.26);
+      backpack.castShadow = true;
+      this.root.add(backpack);
+    } else if (this.variant === 1) {
+      const bandolier = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.06), hazardMaterial());
+      bandolier.position.set(0.14, 1.53, -0.36);
+      bandolier.rotation.z = -0.44;
+      this.root.add(bandolier);
+    } else {
+      const chestLight = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.02), new THREE.MeshBasicMaterial({ color: 0x8ed5d9 }));
+      chestLight.position.set(0.18, 1.6, -0.36);
+      this.root.add(chestLight);
+    }
     const commsUnit = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.2, 0.07), rubber);
     commsUnit.position.set(-0.19, 1.5, -0.36);
     this.root.add(commsUnit);
@@ -98,6 +119,7 @@ export class EnemyAgent {
       leg.position.set(x, 0.52, 0.02);
       leg.castShadow = true;
       this.root.add(leg);
+      this.legs.push(leg);
       const boot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.46), rubber);
       boot.position.set(x, 0.08, -0.1);
       boot.castShadow = true;
@@ -113,9 +135,24 @@ export class EnemyAgent {
     rifleRail.position.set(0.32, 1.62, -0.61);
     rifleRail.rotation.x = Math.PI / 2.6;
     this.root.add(rifleRail);
+    if (this.variant === 2) {
+      const opticCap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.14), armor);
+      opticCap.position.set(0.32, 1.67, -0.6);
+      this.root.add(opticCap);
+    }
     this.muzzle = new THREE.PointLight(0xf7ad5a, 0, 5, 2);
     this.muzzle.position.set(0.32, 1.52, -0.95);
     this.root.add(this.muzzle);
+
+    const operatorTexture = new THREE.TextureLoader().load(ASSET_URLS.operatorSilhouette);
+    operatorTexture.colorSpace = THREE.SRGBColorSpace;
+    const operatorCard = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.12, 2.7),
+      new THREE.MeshBasicMaterial({ map: operatorTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
+    );
+    operatorCard.position.set(0, 1.3, 0.24);
+    operatorCard.renderOrder = 2;
+    this.root.add(operatorCard);
   }
 
   update(delta: number, elapsed: number, playerPosition: THREE.Vector3) {
@@ -134,8 +171,12 @@ export class EnemyAgent {
     if (distance < 22) this.state = this.hitTimer > 0 ? "hit" : "combat";
 
     const gait = Math.sin(elapsed * 7 + this.strafePhase);
-    this.leftArm.rotation.x = gait * 0.08;
-    this.rightArm.rotation.x = -gait * 0.06;
+    const gaitStrength = this.state === "combat" ? 0.2 : 0.06;
+    this.leftArm.rotation.x = gait * gaitStrength;
+    this.rightArm.rotation.x = -gait * gaitStrength * 0.82;
+    this.legs[0].rotation.x = -gait * gaitStrength * 0.9;
+    this.legs[1].rotation.x = gait * gaitStrength * 0.9;
+    this.root.position.y = this.baseHeight + Math.sin(elapsed * 14 + this.strafePhase) * 0.026 * (this.state === "combat" ? 1 : 0.3);
     this.optic.material.color.setHex(this.hitTimer > 0 ? 0xffc49f : 0xe3482e);
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - delta * 22);
 
@@ -143,7 +184,8 @@ export class EnemyAgent {
       this.strafePhase += delta * 1.24;
       const away = this.root.position.clone().sub(playerPosition).setY(0).normalize();
       const tangent = new THREE.Vector3(-away.z, 0, away.x);
-      const desired = tangent.multiplyScalar(Math.sin(this.strafePhase) * 0.68);
+      const strafeSpeed = this.variant === 0 ? 0.82 : this.variant === 1 ? 1.05 : 0.56;
+      const desired = tangent.multiplyScalar(Math.sin(this.strafePhase) * strafeSpeed);
       if (distance < 8.6) desired.add(away.multiplyScalar(0.5));
       if (distance > 13.2) desired.add(away.multiplyScalar(-0.6));
       this.root.position.addScaledVector(desired, delta);
@@ -151,7 +193,7 @@ export class EnemyAgent {
       this.root.position.z = THREE.MathUtils.clamp(this.root.position.z, -14.4, 8.4);
       this.fireCooldown -= delta;
       if (this.fireCooldown <= 0) {
-        this.fireCooldown = 0.78 + Math.random() * 0.74;
+        this.fireCooldown = (this.variant === 1 ? 0.42 : this.variant === 2 ? 1.05 : 0.72) + Math.random() * 0.42;
         this.muzzle.intensity = 8;
         this.onShot(4 + Math.round(Math.random() * 3));
       }
@@ -206,4 +248,8 @@ export class EnemyAgent {
     this.hitMeshes.push(mesh);
     this.root.add(mesh);
   }
+}
+
+function hazardMaterial() {
+  return new THREE.MeshStandardMaterial({ color: 0x5f1e17, emissive: 0x7d1d14, emissiveIntensity: 0.42, roughness: 0.5, metalness: 0.45 });
 }

@@ -16,3 +16,11 @@
 - [x] Improve the environment, enemy presentation, weapon feedback, and HUD integration.
 - [x] Re-run build and live visual verification after the quality rebuild.
 - [ ] Save the quality-improved release and synchronize it with GitHub.
+
+## Blind Reference Quality Cycle
+
+- [x] Collect a legal public gameplay reference frame and a matching Blacksite Protocol frame.
+- [x] Create a blinded A/B comparison package for independent visual critique without naming either game.
+- [x] Convert the critique into scoped, technically achievable priorities for motion, combat, enemies, and rendering.
+- [x] Implement the highest-impact upgrades and re-verify live gameplay.
+- [ ] Save the improved release, push it to GitHub, and report the bounded comparison result.

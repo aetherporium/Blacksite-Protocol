@@ -25,6 +25,7 @@ export class GameRuntime {
   private score = 0;
   private hitMarkerTimer = 0;
   private hudTimer = 0;
+  private shadowRefreshTimer = 0;
   private demoTime = 0;
   private demoFireCooldown = 0;
   private disposed = false;
@@ -69,6 +70,7 @@ export class GameRuntime {
     this.environment = createEnvironment(this.scene);
     this.player = new PlayerController(this.scene, this.input, this.environment.colliders);
     this.weapon = new WeaponSystem(this.scene, this.player.camera, () => this.enemies.flatMap((enemy) => enemy.isAlive ? enemy.hitMeshes : []), (enemy, point) => this.handleEnemyHit(enemy, point), () => this.audio.rifleShot());
+    this.weapon.setPresentationMode(options.demo);
     this.createEncounter();
 
     document.addEventListener("pointerlockchange", this.onPointerLockChange);
@@ -76,7 +78,11 @@ export class GameRuntime {
     window.addEventListener("resize", this.onResize);
     this.onResize();
     this.options.onHud({ ...INITIAL_HUD, mode: options.demo ? "active" : "briefing" });
-    if (options.demo) this.mode = "active";
+    if (options.demo) {
+      this.mode = "active";
+      this.demoTime = 3.4;
+      this.demoFireCooldown = 0;
+    }
     this.renderLoop();
   }
 
@@ -115,8 +121,8 @@ export class GameRuntime {
 
   private createEncounter() {
     const layout = [
-      ["SENTINEL-01", new THREE.Vector3(0.25, 0, -5.5)],
-      ["SENTINEL-02", new THREE.Vector3(-7.4, 0, -8.7)],
+      ["SENTINEL-01", new THREE.Vector3(0.65, 0, 0.7)],
+      ["SENTINEL-02", new THREE.Vector3(-7.4, 0, -5.6)],
       ["SENTINEL-03", new THREE.Vector3(11.5, 2.95, -1.6)],
     ] as const;
     layout.forEach(([id, position]) => {
@@ -151,7 +157,12 @@ export class GameRuntime {
     else if (this.mode === "active") this.updateActive(delta);
 
     this.environment.update(delta, this.elapsed);
-    this.weapon.update(delta);
+    this.weapon.update(delta, this.player.movementAmount, this.player.isSprinting, this.player.isAiming);
+    this.shadowRefreshTimer -= delta;
+    if (this.shadowRefreshTimer <= 0) {
+      this.renderer.shadowMap.needsUpdate = true;
+      this.shadowRefreshTimer = 0.16;
+    }
     this.hitMarkerTimer = Math.max(0, this.hitMarkerTimer - delta);
     this.hudTimer -= delta;
     if (this.hudTimer <= 0) {
@@ -174,7 +185,7 @@ export class GameRuntime {
     const position = new THREE.Vector3(
       Math.sin(this.demoTime * 0.27) * 1.7,
       0,
-      12.3 - Math.cos(this.demoTime * 0.18) * 0.8,
+      9.5 - Math.cos(this.demoTime * 0.18) * 0.8,
     );
     const living = this.enemies.find((enemy) => enemy.isAlive);
     const target = living ? living.root.position.clone().add(new THREE.Vector3(0.18, 1.55, 0)) : new THREE.Vector3(0, 2, -15);

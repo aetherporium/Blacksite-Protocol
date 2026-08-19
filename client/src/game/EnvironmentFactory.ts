@@ -22,9 +22,13 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   wallTexture.colorSpace = THREE.SRGBColorSpace;
   wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
   wallTexture.repeat.set(3, 2);
+  const utilityPanelTexture = textureLoader.load(ASSET_URLS.utilityPanel);
+  utilityPanelTexture.colorSpace = THREE.SRGBColorSpace;
+  const warningDecalTexture = textureLoader.load(ASSET_URLS.warningDecal);
+  warningDecalTexture.colorSpace = THREE.SRGBColorSpace;
 
-  const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, color: 0x2a3539, roughness: 0.63, metalness: 0.28 });
-  const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture, color: 0x78878a, roughness: 0.78, metalness: 0.15 });
+  const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, bumpMap: floorTexture, bumpScale: 0.12, roughnessMap: floorTexture, color: 0x2f4146, roughness: 0.54, metalness: 0.36 });
+  const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture, bumpMap: wallTexture, bumpScale: 0.1, roughnessMap: wallTexture, color: 0x889da0, roughness: 0.67, metalness: 0.22 });
   const steel = new THREE.MeshStandardMaterial({ color: 0x273338, roughness: 0.37, metalness: 0.88 });
   const blackSteel = new THREE.MeshStandardMaterial({ color: 0x11191d, roughness: 0.52, metalness: 0.7 });
   const oxidizedSteel = new THREE.MeshStandardMaterial({ color: 0x35454a, roughness: 0.66, metalness: 0.71 });
@@ -32,6 +36,8 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   const hazard = new THREE.MeshStandardMaterial({ color: 0x742319, emissive: 0xe3482e, emissiveIntensity: 0.78, roughness: 0.44, metalness: 0.43 });
   const lampGlow = new THREE.MeshBasicMaterial({ color: 0xdde9e4, transparent: true, opacity: 0.95 });
   const puddleMaterial = new THREE.MeshPhysicalMaterial({ color: 0x386a73, roughness: 0.08, metalness: 0.56, transparent: true, opacity: 0.38, clearcoat: 0.95 });
+  const utilityPanelMaterial = new THREE.MeshStandardMaterial({ map: utilityPanelTexture, roughness: 0.52, metalness: 0.52, emissive: 0x061012, emissiveIntensity: 0.45 });
+  const warningDecalMaterial = new THREE.MeshBasicMaterial({ map: warningDecalTexture, transparent: true, depthWrite: false, color: 0xffc0a8 });
 
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(42, 42), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
@@ -225,6 +231,17 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   sign.position.set(-10.2, 4.6, -17.9);
   root.add(sign);
 
+  for (const [x, y, scale] of [[-15.2, 2.5, 1.15], [-5.4, 3.15, 0.84], [6.1, 2.65, 1.03], [14.5, 3.25, 0.76]]) {
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.3 * scale, 2.3 * scale), utilityPanelMaterial.clone());
+    panel.position.set(x, y, -18.54);
+    root.add(panel);
+  }
+  for (const [x, y] of [[-1.8, 4.6], [10.2, 4.4]]) {
+    const warningPlate = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.05), warningDecalMaterial.clone());
+    warningPlate.position.set(x, y, -18.5);
+    root.add(warningPlate);
+  }
+
   const chevronSign = new THREE.Group();
   chevronSign.position.set(9.4, 3.8, -17.92);
   root.add(chevronSign);
@@ -238,7 +255,7 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   const keyLight = new THREE.DirectionalLight(0x94b4c3, 2.2);
   keyLight.position.set(-8, 13, 5);
   keyLight.castShadow = true;
-  keyLight.shadow.mapSize.set(1024, 1024);
+  keyLight.shadow.mapSize.set(2048, 2048);
   keyLight.shadow.camera.left = -23;
   keyLight.shadow.camera.right = 23;
   keyLight.shadow.camera.top = 23;
@@ -339,6 +356,8 @@ export function createEnvironment(scene: THREE.Scene): Environment {
       });
       floorTexture.dispose();
       wallTexture.dispose();
+      utilityPanelTexture.dispose();
+      warningDecalTexture.dispose();
       signTexture.dispose();
       root.removeFromParent();
       lamps.forEach((lamp) => lamp.removeFromParent());

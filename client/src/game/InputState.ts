@@ -21,6 +21,7 @@ export class InputState {
   private reloadRequested = false;
   private pauseRequested = false;
   private firing = false;
+  private aiming = false;
 
   private onKeyDown = (event: KeyboardEvent) => {
     const action = KEY_TO_ACTION[event.code];
@@ -45,10 +46,12 @@ export class InputState {
 
   private onMouseDown = (event: MouseEvent) => {
     if (event.button === 0) this.firing = true;
+    if (event.button === 2) this.aiming = true;
   };
 
   private onMouseUp = (event: MouseEvent) => {
     if (event.button === 0) this.firing = false;
+    if (event.button === 2) this.aiming = false;
   };
 
   private onContextMenu = (event: MouseEvent) => event.preventDefault();
@@ -69,6 +72,10 @@ export class InputState {
     return mode === "active" && this.firing;
   }
 
+  isAiming() {
+    return this.aiming;
+  }
+
   consumeReload() {
     const requested = this.reloadRequested;
     this.reloadRequested = false;
@@ -84,6 +91,7 @@ export class InputState {
   clear() {
     this.actions.clear();
     this.firing = false;
+    this.aiming = false;
   }
 
   dispose() {

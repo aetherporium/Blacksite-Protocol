@@ -16,9 +16,10 @@ export class WeaponSystem {
   private readonly root = new THREE.Group();
   private readonly muzzle = new THREE.PointLight(0xffc06a, 0, 7.5, 2);
   private readonly raycaster = new THREE.Raycaster();
-  private readonly tracerMaterial = new THREE.LineBasicMaterial({ color: 0xffd08a, transparent: true, opacity: 0.88 });
+  private readonly tracerMaterial = new THREE.LineBasicMaterial({ color: 0xffd08a, transparent: true, opacity: 0.96, depthTest: false, depthWrite: false });
   private readonly tracers: Tracer[] = [];
   private readonly impacts: Impact[] = [];
+  private presentationMode = false;
 
   constructor(
     private scene: THREE.Scene,
@@ -30,7 +31,11 @@ export class WeaponSystem {
     this.camera.add(this.root);
     this.root.position.set(0.43, -0.37, -0.73);
     this.root.rotation.set(-0.05, -0.16, 0.02);
+    this.root.scale.setScalar(1.22);
     this.createViewModel();
+    const viewmodelFill = new THREE.PointLight(0x9bc9d2, 3.2, 4, 2);
+    viewmodelFill.position.set(0.38, -0.22, -0.35);
+    this.camera.add(viewmodelFill);
   }
 
   tryFire(now: number) {
@@ -65,11 +70,21 @@ export class WeaponSystem {
     return true;
   }
 
-  update(delta: number) {
+  setPresentationMode(enabled: boolean) {
+    this.presentationMode = enabled;
+  }
+
+  update(delta: number, movementAmount = 0, sprintAmount = 0, aimAmount = 0) {
     this.muzzle.intensity = Math.max(0, this.muzzle.intensity - delta * 35);
     this.recoil = THREE.MathUtils.damp(this.recoil, 0, 13, delta);
-    this.root.position.y = -0.37 - this.recoil * 0.028 + Math.sin(performance.now() * 0.0017) * 0.004;
-    this.root.rotation.x = -0.05 - this.recoil * 0.085;
+    const handlingTime = performance.now() * 0.0017;
+    const strideX = Math.sin(handlingTime * 6.5) * 0.018 * movementAmount;
+    const strideY = Math.abs(Math.cos(handlingTime * 6.5)) * 0.016 * movementAmount;
+    this.root.position.x = 0.43 + strideX - sprintAmount * 0.06 - aimAmount * 0.33;
+    this.root.position.y = -0.37 - this.recoil * 0.028 + strideY + Math.sin(handlingTime) * 0.004 + aimAmount * 0.13;
+    this.root.position.z = -0.73 + sprintAmount * 0.09 + aimAmount * 0.26;
+    this.root.rotation.x = -0.05 - this.recoil * 0.085 + sprintAmount * 0.08;
+    this.root.rotation.y = -0.16 - strideX * 0.38 + aimAmount * 0.15;
 
     if (this.reloading) {
       this.reloadTimer -= delta;
@@ -82,7 +97,7 @@ export class WeaponSystem {
         this.reloading = false;
       }
     } else {
-      this.root.rotation.z = THREE.MathUtils.damp(this.root.rotation.z, 0.02, 12, delta);
+      this.root.rotation.z = THREE.MathUtils.damp(this.root.rotation.z, 0.02 + Math.sin(handlingTime * 6.5) * 0.028 * movementAmount, 12, delta);
     }
 
     for (let index = this.tracers.length - 1; index >= 0; index -= 1) {
@@ -114,10 +129,10 @@ export class WeaponSystem {
   }
 
   private createViewModel() {
-    const graphite = new THREE.MeshStandardMaterial({ color: 0x12191d, roughness: 0.43, metalness: 0.84 });
-    const black = new THREE.MeshStandardMaterial({ color: 0x050708, roughness: 0.74, metalness: 0.32 });
-    const accent = new THREE.MeshStandardMaterial({ color: 0x6c1710, roughness: 0.45, metalness: 0.58, emissive: 0x250403 });
-    const glove = new THREE.MeshStandardMaterial({ color: 0x1f292e, roughness: 0.92, metalness: 0.08 });
+    const graphite = new THREE.MeshStandardMaterial({ color: 0x3b535a, roughness: 0.38, metalness: 0.9, emissive: 0x071113, emissiveIntensity: 0.22 });
+    const black = new THREE.MeshStandardMaterial({ color: 0x1a272d, roughness: 0.66, metalness: 0.54 });
+    const accent = new THREE.MeshStandardMaterial({ color: 0x8a2b1b, roughness: 0.4, metalness: 0.64, emissive: 0x330704, emissiveIntensity: 0.72 });
+    const glove = new THREE.MeshStandardMaterial({ color: 0x34464d, roughness: 0.82, metalness: 0.12 });
 
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.86), graphite);
     body.position.set(0.01, -0.03, 0);
@@ -146,7 +161,18 @@ export class WeaponSystem {
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 9), glove);
     hand.scale.set(0.72, 1, 1.05);
     hand.position.set(-0.15, -0.2, 0.25);
-    for (const mesh of [body, rail, barrel, stock, magazine, sight, sightLens, shroud, selector, heatStrip, hand]) {
+    const supportHand = new THREE.Mesh(new THREE.SphereGeometry(0.145, 12, 9), glove);
+    supportHand.scale.set(0.74, 0.9, 1.1);
+    supportHand.position.set(0.16, -0.08, -0.44);
+    const rearForearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.105, 0.46, 6, 10), glove);
+    rearForearm.position.set(-0.23, -0.38, 0.38);
+    rearForearm.rotation.z = -0.6;
+    rearForearm.rotation.x = 0.22;
+    const supportForearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.095, 0.35, 6, 10), glove);
+    supportForearm.position.set(0.24, -0.26, -0.18);
+    supportForearm.rotation.z = 0.54;
+    supportForearm.rotation.x = 0.18;
+    for (const mesh of [body, rail, barrel, stock, magazine, sight, sightLens, shroud, selector, heatStrip, hand, supportHand, rearForearm, supportForearm]) {
       mesh.castShadow = true;
       this.root.add(mesh);
     }
@@ -159,7 +185,7 @@ export class WeaponSystem {
     const material = this.tracerMaterial.clone();
     const line = new THREE.Line(geometry, material);
     this.scene.add(line);
-    this.tracers.push({ line, material, life: 0.12 });
+    this.tracers.push({ line, material, life: this.presentationMode ? 0.32 : 0.12 });
   }
 
   private spawnImpact(point: THREE.Vector3, normal: THREE.Vector3) {

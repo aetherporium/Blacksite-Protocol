@@ -41,4 +41,7 @@ export const ASSET_URLS = {
   floor: "/manus-storage/blacksite-wet-floor_47e72a28.png",
   enemyReference: "/manus-storage/blacksite-enemy-reference_c815fcac.png",
   breachMark: "/manus-storage/blacksite-breach-mark_44d8de05.png",
+  operatorSilhouette: "/manus-storage/blacksite-operator-silhouette_c085fc16.png",
+  utilityPanel: "/manus-storage/blacksite-utility-panel_a0166a67.png",
+  warningDecal: "/manus-storage/blacksite-warning-decal_c61a8b2c.png",
 } as const;
