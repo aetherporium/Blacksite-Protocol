@@ -8,11 +8,11 @@ import type { GameRuntime, HudSnapshot } from "@/game";
 type GameCanvasProps = {
   demo: boolean;
   onHud: (snapshot: HudSnapshot) => void;
-  onReady: () => void;
+  onReady?: () => void;
   runtimeRef: MutableRefObject<GameRuntime | null>;
 };
 
-export default function GameCanvas({ demo, onHud, onReady, runtimeRef }: GameCanvasProps) {
+export default function GameCanvas({ demo, onHud, onReady = () => undefined, runtimeRef }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const onHudRef = useRef(onHud);
   const onReadyRef = useRef(onReady);
@@ -39,7 +39,7 @@ export default function GameCanvas({ demo, onHud, onReady, runtimeRef }: GameCan
           onHud: (snapshot) => onHudRef.current(snapshot),
         });
         runtimeRef.current = runtime;
-        onReadyRef.current();
+        onReadyRef.current?.();
       });
     }, demo ? 0 : 350);
 

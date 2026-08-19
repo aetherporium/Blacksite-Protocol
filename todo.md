@@ -4,7 +4,15 @@
 - [x] Identify the largest client-side imports and unnecessary render workload.
 - [x] Apply load-time and frame-time optimizations without changing the visual direction.
 - [x] Run type checks, production build, and visual verification.
-- [ ] Save an optimized release checkpoint.
+- [x] Save an optimized release checkpoint.
 - [x] Locate the user’s Blacksite Protocol GitHub repository (`aetherporium/Blacksite-Protocol`); the destination is empty.
-- [ ] Export the optimized project to the repository.
-- [ ] Report the results, including any GitHub connection requirement.
+- [x] Export the optimized project to the repository.
+- [x] Report the results, including any GitHub connection requirement.
+
+## Independent Quality Pass
+
+- [x] Capture the briefing and deterministic encounter for an independent screenshot-only critique.
+- [x] Translate accepted critique findings into a visual and gameplay revision contract.
+- [x] Improve the environment, enemy presentation, weapon feedback, and HUD integration.
+- [x] Re-run build and live visual verification after the quality rebuild.
+- [ ] Save the quality-improved release and synchronize it with GitHub.

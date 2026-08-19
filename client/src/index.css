@@ -29,7 +29,10 @@ button { font: inherit; }
 .broken-a { position: relative; display: inline-block; color: #f4fbf8; transform: skewX(-8deg); }
 .broken-a::after { position: absolute; top: 48%; left: 11%; width: 78%; height: 2px; content: ""; background: #e3482e; box-shadow: 0 0 6px rgba(227,72,46,.72); transform: rotate(-8deg); }
 .topbar-objective { display: flex; align-items: center; gap: 9px; margin-top: 9px; max-width: 44vw; color: #e5efeb; font-family: "Barlow Condensed", sans-serif; font-size: clamp(11px, 1.1vw, 15px); font-weight: 600; letter-spacing: .13em; text-align: center; text-shadow: 0 1px 7px #000; }
-.objective-pip { width: 7px; height: 7px; background: #e3482e; box-shadow: 0 0 14px #e3482e; transform: rotate(45deg); }
+.objective-pip { position: relative; width: 14px; height: 12px; background: transparent; filter: drop-shadow(0 0 7px rgba(227,72,46,.82)); }
+.objective-pip::before, .objective-pip::after { position: absolute; top: 1px; width: 6px; height: 10px; content: ""; border: 2px solid #e3482e; }
+.objective-pip::before { left: 0; border-right: 0; transform: skewY(-34deg); }
+.objective-pip::after { right: 0; border-left: 0; transform: skewY(34deg); }
 .signal-status { display: flex; align-items: center; gap: 8px; margin-top: 4px; color: #95b9b5; font-size: 9px; letter-spacing: .12em; }
 .signal-dot { width: 6px; height: 6px; border-radius: 50%; background: #8dd0bc; box-shadow: 0 0 12px #8dd0bc; animation: signal 1.8s ease-in-out infinite; }
 

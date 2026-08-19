@@ -52,6 +52,20 @@ export class EnemyAgent {
     chest.position.set(0, 1.52, -0.08);
     chest.castShadow = true;
     this.root.add(chest);
+    const chestPlate = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.34, 0.08), armor);
+    chestPlate.position.set(0, 1.55, -0.31);
+    chestPlate.castShadow = true;
+    this.root.add(chestPlate);
+    const commsUnit = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.2, 0.07), rubber);
+    commsUnit.position.set(-0.19, 1.5, -0.36);
+    this.root.add(commsUnit);
+    for (const x of [-0.47, 0.47]) {
+      const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 7), armor);
+      shoulder.scale.set(1.35, 0.74, 0.92);
+      shoulder.position.set(x, 1.85, 0);
+      shoulder.castShadow = true;
+      this.root.add(shoulder);
+    }
 
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.16, 8), rubber);
     neck.position.y = 2.02;
@@ -95,6 +109,10 @@ export class EnemyAgent {
     rifle.rotation.x = Math.PI / 2.6;
     rifle.castShadow = true;
     this.root.add(rifle);
+    const rifleRail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.46), armor);
+    rifleRail.position.set(0.32, 1.62, -0.61);
+    rifleRail.rotation.x = Math.PI / 2.6;
+    this.root.add(rifleRail);
     this.muzzle = new THREE.PointLight(0xf7ad5a, 0, 5, 2);
     this.muzzle.position.set(0.32, 1.52, -0.95);
     this.root.add(this.muzzle);

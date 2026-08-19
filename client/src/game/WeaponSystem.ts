@@ -133,10 +133,20 @@ export class WeaponSystem {
     magazine.rotation.x = -0.18;
     const sight = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.1, 0.17), black);
     sight.position.set(0.01, 0.16, -0.18);
+    const sightLens = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.056, 0.012), new THREE.MeshBasicMaterial({ color: 0x9fd5df, transparent: true, opacity: 0.72 }));
+    sightLens.position.set(0.01, 0.165, -0.272);
+    const shroud = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.074, 0.36, 10), graphite);
+    shroud.rotation.x = Math.PI / 2;
+    shroud.position.set(0.01, 0, -0.52);
+    const selector = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.025, 8), accent);
+    selector.rotation.z = Math.PI / 2;
+    selector.position.set(0.125, -0.07, 0.14);
+    const heatStrip = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.025, 0.32), accent);
+    heatStrip.position.set(-0.08, 0.045, -0.32);
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 9), glove);
     hand.scale.set(0.72, 1, 1.05);
     hand.position.set(-0.15, -0.2, 0.25);
-    for (const mesh of [body, rail, barrel, stock, magazine, sight, hand]) {
+    for (const mesh of [body, rail, barrel, stock, magazine, sight, sightLens, shroud, selector, heatStrip, hand]) {
       mesh.castShadow = true;
       this.root.add(mesh);
     }

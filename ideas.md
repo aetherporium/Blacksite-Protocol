@@ -76,3 +76,6 @@ The objective is a **high-fidelity browser-game vertical slice**, not a claim of
 - Every gameplay frame preserves darkness while still revealing three distinct industrial layers: wet reflective floor, hard cover silhouette, and distant work-lamp depth.
 - The split-chevron breach glyph is the primary brand mark. It appears in the header, start overlay, reticle/objective language, and environmental signage.
 - Signal Vermilion (#E3482E) is reserved for breach actions, hostile signals, objective vectors, emergency panels, weapon impact cues, and system warnings.
+- Every playable view must visibly contain three industrial material cues: wet reflective floor, steel or concrete functional infrastructure, and Signal Vermilion hazard or emergency signage.
+- Tungsten work lamps are the primary depth tool: cold blue-black darkness sets the facility, fogged white pools reveal tactical routes, and Signal Vermilion stays reserved for warnings and objective pressure.
+- The split-chevron breach glyph is the single dominant icon system across start overlay, HUD objective language, reticle, and environmental signals.

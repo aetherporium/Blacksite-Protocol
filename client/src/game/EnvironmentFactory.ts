@@ -27,8 +27,11 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture, color: 0x78878a, roughness: 0.78, metalness: 0.15 });
   const steel = new THREE.MeshStandardMaterial({ color: 0x273338, roughness: 0.37, metalness: 0.88 });
   const blackSteel = new THREE.MeshStandardMaterial({ color: 0x11191d, roughness: 0.52, metalness: 0.7 });
+  const oxidizedSteel = new THREE.MeshStandardMaterial({ color: 0x35454a, roughness: 0.66, metalness: 0.71 });
+  const conduitMaterial = new THREE.MeshStandardMaterial({ color: 0x1c272b, roughness: 0.43, metalness: 0.9 });
   const hazard = new THREE.MeshStandardMaterial({ color: 0x742319, emissive: 0xe3482e, emissiveIntensity: 0.78, roughness: 0.44, metalness: 0.43 });
   const lampGlow = new THREE.MeshBasicMaterial({ color: 0xdde9e4, transparent: true, opacity: 0.95 });
+  const puddleMaterial = new THREE.MeshPhysicalMaterial({ color: 0x386a73, roughness: 0.08, metalness: 0.56, transparent: true, opacity: 0.38, clearcoat: 0.95 });
 
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(42, 42), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
@@ -53,12 +56,34 @@ export function createEnvironment(scene: THREE.Scene): Environment {
     return mesh;
   };
 
+  const addPuddle = (width: number, depth: number, x: number, z: number, rotation = 0) => {
+    const puddle = new THREE.Mesh(new THREE.CircleGeometry(1, 28), puddleMaterial);
+    puddle.scale.set(width, depth, 1);
+    puddle.rotation.x = -Math.PI / 2;
+    puddle.rotation.z = rotation;
+    puddle.position.set(x, 0.018, z);
+    root.add(puddle);
+  };
+
+  addPuddle(3.7, 0.82, -2.8, 4.1, 0.14);
+  addPuddle(4.2, 0.92, 3.5, -1.8, -0.12);
+  addPuddle(2.1, 0.48, 8.7, 4.8, 0.2);
+  addPuddle(2.8, 0.58, 0.8, -10.5, -0.08);
+
   addBox([42, 7, 1.2], [0, 3.5, -19.2], wallMaterial, true);
   addBox([42, 7, 1.2], [0, 3.5, 19.2], wallMaterial, true);
   addBox([1.2, 7, 42], [-19.2, 3.5, 0], wallMaterial, true);
   addBox([1.2, 7, 42], [19.2, 3.5, 0], wallMaterial, true);
   addBox([2.8, 5.6, 0.42], [0, 3.5, -18.45], blackSteel, true);
   addBox([2.34, 5.05, 0.2], [0, 3.48, -18.15], hazard, false);
+  for (const x of [-16, -12, -8, -4, 4, 8, 12, 16]) {
+    addBox([0.16, 6.6, 0.22], [x, 3.3, -18.52], blackSteel, false);
+    addBox([3.55, 0.1, 0.14], [x + 1.8, 5.65, -18.53], conduitMaterial, false);
+  }
+  for (const x of [-13.2, -6.6, 6.6, 13.2]) {
+    const brace = addBox([0.12, 3.8, 0.16], [x, 4.1, -18.4], oxidizedSteel, false);
+    brace.rotation.z = x < 0 ? -0.48 : 0.48;
+  }
 
   for (const x of [-15.4, -7.8, 7.8, 15.4]) {
     addBox([1.15, 7.2, 1.15], [x, 3.6, -8.2], wallMaterial, true);
@@ -71,6 +96,40 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   addBox([1.75, 1.1, 1.5], [-3.2, 0.55, -5.3], steel, true);
   addBox([2.2, 1.7, 1.1], [5.3, 0.85, -3.3], blackSteel, true);
   addBox([1.2, 2.5, 2.6], [11.2, 1.25, 4.4], steel, true);
+  addBox([2.4, 2.9, 1.4], [-14.1, 1.45, 2.1], oxidizedSteel, true);
+  addBox([1.8, 1.1, 2.1], [-13.6, 0.55, 5.2], blackSteel, true);
+  addBox([1.4, 2.2, 1.15], [-10.6, 1.1, 7.6], oxidizedSteel, true);
+  addBox([2.8, 0.8, 1.1], [6.4, 0.4, 6.5], steel, true);
+  addBox([1.6, 1.45, 1.4], [13.6, 0.72, -8.4], blackSteel, true);
+
+  const utilityBay = new THREE.Group();
+  utilityBay.position.set(-14.6, 0, -5.3);
+  root.add(utilityBay);
+  for (let index = 0; index < 3; index += 1) {
+    const cabinet = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.5 + index * 0.28, 0.52), oxidizedSteel);
+    cabinet.position.set(index * 1.22, (2.5 + index * 0.28) / 2, 0);
+    cabinet.castShadow = true;
+    cabinet.receiveShadow = true;
+    utilityBay.add(cabinet);
+    const indicator = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.05, 0.02), index === 1 ? hazard : lampGlow);
+    indicator.position.set(index * 1.22, 1.85, -0.27);
+    utilityBay.add(indicator);
+  }
+
+  const grateGeometry = new THREE.BoxGeometry(0.07, 0.025, 6.8);
+  const grate = new THREE.InstancedMesh(grateGeometry, blackSteel, 34);
+  const grateMatrix = new THREE.Matrix4();
+  let grateIndex = 0;
+  for (const [centerX, centerZ] of [[-2.6, 6.4], [5.5, -2.4]]) {
+    for (let offset = -8; offset <= 8; offset += 1) {
+      grateMatrix.makeTranslation(centerX + offset * 0.22, 0.029, centerZ);
+      grate.setMatrixAt(grateIndex, grateMatrix);
+      grateIndex += 1;
+    }
+  }
+  grate.count = grateIndex;
+  grate.instanceMatrix.needsUpdate = true;
+  root.add(grate);
 
   const catwalk = new THREE.Group();
   catwalk.position.set(11.8, 2.8, -1.8);
@@ -79,6 +138,9 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   catwalkDeck.castShadow = true;
   catwalkDeck.receiveShadow = true;
   catwalk.add(catwalkDeck);
+  const catwalkGlow = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.04, 0.1), hazard);
+  catwalkGlow.position.set(0, 0.12, -1.42);
+  catwalk.add(catwalkGlow);
   for (const z of [-1.25, 1.25]) {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(9.3, 0.75, 0.08), blackSteel);
     rail.position.set(0, 0.46, z);
@@ -116,6 +178,31 @@ export function createEnvironment(scene: THREE.Scene): Environment {
     pipe.position.set(0, 6.4, z);
     pipe.castShadow = true;
     root.add(pipe);
+  }
+  for (const [x, z, height] of [[-16.7, -1.4, 5.4], [-12.8, 10.7, 4.1], [15.5, 7.2, 5.6], [7.6, -15.9, 4.2]]) {
+    const riser = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, height, 10), conduitMaterial);
+    riser.position.set(x, height / 2, z);
+    riser.castShadow = true;
+    root.add(riser);
+    const coupling = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.06, 6, 12), oxidizedSteel);
+    coupling.rotation.x = Math.PI / 2;
+    coupling.position.set(x, height * 0.56, z);
+    root.add(coupling);
+  }
+
+  const cableTray = new THREE.Group();
+  root.add(cableTray);
+  for (const z of [-4.8, 4.8]) {
+    const railA = new THREE.Mesh(new THREE.BoxGeometry(25, 0.08, 0.09), conduitMaterial);
+    railA.position.set(0, 5.72, z);
+    const railB = railA.clone();
+    railB.position.y += 0.34;
+    cableTray.add(railA, railB);
+    for (let x = -11; x <= 11; x += 2.2) {
+      const hanger = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), conduitMaterial);
+      hanger.position.set(x, 5.95, z);
+      cableTray.add(hanger);
+    }
   }
 
   const signCanvas = document.createElement("canvas");
@@ -191,6 +278,7 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   addWorkCone([-8, 7.5, 9], [-7, 0, 2]);
   addWorkCone([6, 7.4, 4], [4, 0, -4]);
   addWorkCone([0, 7.3, -12], [0, 0, -15]);
+  addWorkCone([14.2, 6.2, -1.3], [10.8, 1.2, -1.8]);
 
   const rainCount = THREE.MathUtils.clamp(Math.floor((window.innerWidth * window.innerHeight) / 3600), 220, 420);
   let rainUpdateAccumulator = 0;
@@ -208,7 +296,7 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   const steam = new THREE.Group();
   root.add(steam);
   for (const [x, z] of [[-11, -2], [-3, -11], [9, 3], [14, -9]]) {
-    const plume = new THREE.Mesh(new THREE.SphereGeometry(0.65, 12, 8), new THREE.MeshBasicMaterial({ color: 0x8cb8bd, transparent: true, opacity: 0.045, depthWrite: false }));
+    const plume = new THREE.Mesh(new THREE.SphereGeometry(0.65, 12, 8), new THREE.MeshBasicMaterial({ color: 0x9fced2, transparent: true, opacity: 0.08, depthWrite: false }));
     plume.position.set(x, 1.1, z);
     plume.scale.set(1, 2.6, 1);
     steam.add(plume);
