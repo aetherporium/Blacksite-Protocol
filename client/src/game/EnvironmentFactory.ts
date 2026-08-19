@@ -192,7 +192,8 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   addWorkCone([6, 7.4, 4], [4, 0, -4]);
   addWorkCone([0, 7.3, -12], [0, 0, -15]);
 
-  const rainCount = 620;
+  const rainCount = THREE.MathUtils.clamp(Math.floor((window.innerWidth * window.innerHeight) / 3600), 220, 420);
+  let rainUpdateAccumulator = 0;
   const rainGeometry = new THREE.BufferGeometry();
   const rainPositions = new Float32Array(rainCount * 3);
   for (let index = 0; index < rainCount; index += 1) {
@@ -216,15 +217,20 @@ export function createEnvironment(scene: THREE.Scene): Environment {
   return {
     colliders,
     update(delta, elapsed) {
-      for (let index = 0; index < rainCount; index += 1) {
-        const yIndex = index * 3 + 1;
-        rainPositions[yIndex] -= delta * (7.5 + (index % 4));
-        if (rainPositions[yIndex] < 0.15) {
-          rainPositions[yIndex] = 11 + Math.random() * 4;
-          rainPositions[index * 3] = (Math.random() - 0.5) * 38;
+      rainUpdateAccumulator += delta;
+      if (rainUpdateAccumulator >= 1 / 30) {
+        const rainDelta = rainUpdateAccumulator;
+        rainUpdateAccumulator = 0;
+        for (let index = 0; index < rainCount; index += 1) {
+          const yIndex = index * 3 + 1;
+          rainPositions[yIndex] -= rainDelta * (7.5 + (index % 4));
+          if (rainPositions[yIndex] < 0.15) {
+            rainPositions[yIndex] = 11 + Math.random() * 4;
+            rainPositions[index * 3] = (Math.random() - 0.5) * 38;
+          }
         }
+        (rain.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
       }
-      (rain.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
       lamps.forEach((lamp, index) => {
         const base = index === lamps.length - 1 ? 16 : 23;
         lamp.intensity = base + Math.sin(elapsed * (1.3 + index * 0.17) + index) * 0.75;

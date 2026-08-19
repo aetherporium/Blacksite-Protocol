@@ -4,7 +4,8 @@
  */
 import { useCallback, useMemo, useRef, useState } from "react";
 import GameCanvas from "@/components/GameCanvas";
-import { ASSET_URLS, GameRuntime, INITIAL_HUD, type HudSnapshot } from "@/game";
+import { ASSET_URLS, INITIAL_HUD, type HudSnapshot } from "@/game/types";
+import type { GameRuntime } from "@/game/GameRuntime";
 
 const formatTime = (seconds: number) => {
   const wholeSeconds = Math.floor(seconds);
@@ -17,7 +18,9 @@ export default function Home() {
   const runtimeRef = useRef<GameRuntime | null>(null);
   const [hud, setHud] = useState<HudSnapshot>(INITIAL_HUD);
   const demo = useMemo(() => new URLSearchParams(window.location.search).has("demo"), []);
+  const [engineReady, setEngineReady] = useState(false);
   const updateHud = useCallback((snapshot: HudSnapshot) => setHud(snapshot), []);
+  const handleEngineReady = useCallback(() => setEngineReady(true), []);
   const overlayVisible = !demo && ["briefing", "paused", "complete", "failed"].includes(hud.mode);
   const overlayHeading = hud.mode === "paused" ? "SIGNAL HOLD" : hud.mode === "complete" ? "ARRAY SECURED" : hud.mode === "failed" ? "LINK LOST" : "BLACKSITE PROTOCOL";
   const overlayDescription = hud.mode === "paused"
@@ -29,6 +32,7 @@ export default function Home() {
         : "Rain-fed turbine bay. Three hostile signals. Breach, clear, secure.";
 
   const activate = () => {
+    if (!engineReady) return;
     if (hud.mode === "paused") runtimeRef.current?.resume();
     else if (hud.mode === "complete" || hud.mode === "failed") runtimeRef.current?.restart();
     else runtimeRef.current?.beginOperation();
@@ -36,7 +40,8 @@ export default function Home() {
 
   return (
     <main className="game-shell">
-      <GameCanvas demo={demo} onHud={updateHud} runtimeRef={runtimeRef} />
+      <div className="briefing-scene-still" style={{ backgroundImage: `url(${ASSET_URLS.visualTarget})` }} aria-hidden="true" />
+      <GameCanvas demo={demo} onHud={updateHud} onReady={handleEngineReady} runtimeRef={runtimeRef} />
       <div className="atmosphere-vignette" aria-hidden="true" />
       <div className="atmosphere-grain" aria-hidden="true" />
 
@@ -101,8 +106,8 @@ export default function Home() {
                 <div className="operation-kicker"><span /> LIVE SIMULATION</div>
                 <h1>{overlayHeading === "BLACKSITE PROTOCOL" ? <>BL<span className="broken-a">A</span>CKSITE<br />PROTOCOL</> : overlayHeading}</h1>
                 <p>{overlayDescription}</p>
-                <button className="enter-button" type="button" onClick={activate}>
-                  <span>{hud.mode === "paused" ? "RESUME BREACH" : hud.mode === "complete" || hud.mode === "failed" ? "RE-INITIALIZE" : "ENTER OPERATION"}</span>
+                <button className="enter-button" type="button" onClick={activate} disabled={!engineReady}>
+                  <span>{!engineReady ? "CALIBRATING NODE" : hud.mode === "paused" ? "RESUME BREACH" : hud.mode === "complete" || hud.mode === "failed" ? "RE-INITIALIZE" : "ENTER OPERATION"}</span>
                   <b>↗</b>
                 </button>
                 <div className="control-legend">

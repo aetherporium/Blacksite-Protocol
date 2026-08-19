@@ -50,13 +50,16 @@ export class GameRuntime {
     this.player.camera.aspect = width / height;
     this.player.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+    this.renderer.shadowMap.needsUpdate = true;
   };
 
   constructor(private canvas: HTMLCanvasElement, private options: GameRuntimeOptions) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: window.devicePixelRatio <= 1.35, powerPreference: "high-performance" });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.35));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.shadowMap.needsUpdate = true;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.38;
@@ -152,7 +155,7 @@ export class GameRuntime {
     this.hitMarkerTimer = Math.max(0, this.hitMarkerTimer - delta);
     this.hudTimer -= delta;
     if (this.hudTimer <= 0) {
-      this.hudTimer = 0.06;
+      this.hudTimer = 0.1;
       this.emitHud();
     }
     this.renderer.render(this.scene, this.player.camera);
